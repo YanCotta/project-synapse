@@ -7,15 +7,27 @@ Provides async message handling, MCP client capabilities, and RabbitMQ integrati
 
 import asyncio
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 import aiohttp
 from urllib.parse import urljoin
 
+# Prometheus monitoring
+from prometheus_client import Counter, start_http_server, generate_latest, CONTENT_TYPE_LATEST
+from fastapi import FastAPI, Response
+
 from ..message_bus.rabbitmq_bus import RabbitMQBus
 from ..protocols.acp_schema import ACPMessage, ACPMsgType
 
 logger = logging.getLogger(__name__)
+
+# Prometheus metrics
+TASKS_PROCESSED = Counter(
+    'synapse_agent_tasks_processed',
+    'Number of tasks processed by agents',
+    ['agent_class', 'task_type']
+)
 
 
 class AsyncBaseAgent(ABC):
@@ -124,6 +136,12 @@ class AsyncBaseAgent(ABC):
         Args:
             message: Incoming ACP message to process
         """
+        # Increment task counter for monitoring
+        task_type = message.msg_type.value if hasattr(message.msg_type, 'value') else str(message.msg_type)
+        TASKS_PROCESSED.labels(
+            agent_class=self.__class__.__name__,
+            task_type=task_type
+        ).inc()
         pass
     
     async def periodic_task(self):
@@ -335,3 +353,37 @@ def generate_task_id() -> str:
     """Generate a unique task ID."""
     import uuid
     return str(uuid.uuid4())[:8]
+
+
+async def start_metrics_server(port: int = 9090):
+    """
+    Start a FastAPI metrics server for Prometheus.
+    
+    Args:
+        port: Port to serve metrics on
+    """
+    if not os.getenv("METRICS_ENABLED", "false").lower() == "true":
+        logger.info("Metrics disabled, skipping metrics server")
+        return
+        
+    app = FastAPI(title="Agent Metrics Server")
+    
+    @app.get("/metrics", response_class=Response)
+    async def metrics():
+        """Prometheus metrics endpoint."""
+        return Response(
+            content=generate_latest(),
+            media_type=CONTENT_TYPE_LATEST
+        )
+    
+    @app.get("/health")
+    async def health():
+        """Health check for metrics server."""
+        return {"status": "healthy", "service": "metrics-server"}
+    
+    import uvicorn
+    config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
+    server = uvicorn.Server(config)
+    
+    logger.info(f"Starting metrics server on port {port}")
+    await server.serve()
