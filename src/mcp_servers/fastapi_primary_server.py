@@ -8,11 +8,15 @@ Demonstrates MCP Progress Notifications through Server-Sent Events.
 import asyncio
 import json
 import time
+import os
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
+
+# Prometheus monitoring
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from ..protocols.mcp_schemas import (
     SearchWebParams, BrowseAndExtractParams,
@@ -34,6 +38,19 @@ def create_primary_app() -> FastAPI:
         description="Web search and content extraction tools with progress notifications",
         version="1.0.0"
     )
+
+    # Configure Prometheus monitoring if enabled
+    metrics_enabled = os.getenv("METRICS_ENABLED", "false").lower() == "true"
+    if metrics_enabled:
+        instrumentator = Instrumentator(
+            should_group_status_codes=False,
+            should_ignore_untemplated=True,
+            should_instrument_requests_inprogress=True,
+            should_group_untemplated=False,
+            should_round_latency_decimals=True,
+            excluded_handlers=["/health", "/metrics"]
+        )
+        instrumentator.instrument(app).expose(app)
 
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
