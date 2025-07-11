@@ -39,6 +39,7 @@ services:
     environment:
       - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
       - SERVER_PORT=8001
+      - SERVER_TYPE=primary_tooling
       # Performance optimizations
       - UVICORN_WORKERS=2
       - UVICORN_WORKER_CONNECTIONS=1000
@@ -74,6 +75,7 @@ services:
     environment:
       - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
       - SERVER_PORT=8002
+      - SERVER_TYPE=filesystem
       - ALLOWED_ROOTS=/app/output,/app/temp
       # Performance optimizations
       - UVICORN_WORKERS=1
@@ -166,7 +168,8 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=synapse123
-      - GF_INSTALL_PLUGINS=prometheus
+      # Remove plugin installation as it's built-in
+      - GF_LOG_LEVEL=info
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana_dashboard.json:/var/lib/grafana/dashboards/synapse_dashboard.json:ro
