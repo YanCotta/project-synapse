@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents-deployment
+  namespace: default
+  labels:
+    app: project-synapse
+    component: agents
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: project-synapse
+      component: agents
+  template:
+    metadata:
+      labels:
+        app: project-synapse
+        component: agents
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: agents
+        image: project-synapse:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: RABBITMQ_URL
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: RABBITMQ_URL
+        - name: PRIMARY_TOOLING_URL
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: PRIMARY_TOOLING_URL
+        - name: FILESYSTEM_URL
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: FILESYSTEM_URL
+        - name: AGENT_POOL_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: AGENT_POOL_SIZE
+        - name: MESSAGE_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: MESSAGE_BATCH_SIZE
+        - name: ASYNC_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: ASYNC_TIMEOUT
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: METRICS_ENABLED
+        - name: METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: LOG_FORMAT
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import asyncio; print('Agents healthy')"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        volumeMounts:
+        - name: output-volume
+          mountPath: /app/output
+        - name: temp-volume
+          mountPath: /app/temp
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: output-volume
+        emptyDir: {}
+      - name: temp-volume
+        emptyDir: {}
+      - name: logs-volume
+        emptyDir: {}
+      initContainers:
+      - name: wait-for-services
+        image: busybox:1.35
+        command: 
+        - sh
+        - -c
+        - |
+          until nc -z rabbitmq-service 5672; do echo waiting for rabbitmq; sleep 2; done;
+          until nc -z primary-server-service 8001; do echo waiting for primary-server; sleep 2; done;
+          until nc -z filesystem-server-service 8002; do echo waiting for filesystem-server; sleep 2; done;
+          echo "All services ready"
