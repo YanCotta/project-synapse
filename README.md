@@ -74,7 +74,7 @@ python scripts/monitor_system.py
 ```bash
 # Alternative: Local development
 pip install -r requirements.txt
-python main.py
+python async_main.py
 ```
 
 ## 📊 Performance Metrics
@@ -163,31 +163,39 @@ services:
 project-synapse/
 ├── src/
 │   ├── agents/              # 7 specialized async agents
-│   │   ├── orchestrator.py      # Central coordinator
-│   │   ├── search_agent.py      # Web search capabilities
-│   │   ├── extraction_agent.py  # Content extraction
-│   │   ├── fact_checker_agent.py # Validation services
-│   │   ├── synthesis_agent.py   # Report generation
-│   │   ├── file_save_agent.py   # Secure file operations
-│   │   └── logger_agent.py      # System monitoring
+│   │   ├── async_orchestrator.py    # Central coordinator
+│   │   ├── async_search_agent.py    # Web search capabilities
+│   │   ├── async_extraction_agent.py # Content extraction
+│   │   ├── async_fact_checker_agent.py # Validation services
+│   │   ├── async_synthesis_agent.py  # Report generation
+│   │   ├── async_file_save_agent.py  # Secure file operations
+│   │   ├── async_logger_agent.py     # System monitoring
+│   │   └── async_base_agent.py       # Common agent functionality
 │   ├── mcp_servers/         # Production MCP servers
-│   │   ├── primary_server.py    # Web tools with progress
-│   │   └── filesystem_server.py # Secure file operations
+│   │   ├── fastapi_primary_server.py    # Web tools with progress
+│   │   └── fastapi_filesystem_server.py # Secure file operations
+│   ├── message_bus/         # RabbitMQ message bus implementation
+│   │   └── rabbitmq_bus.py          # Async message routing
 │   └── protocols/           # Communication schemas
 │       ├── acp_schema.py        # Agent Communication Protocol
 │       └── mcp_schemas.py       # Model Context Protocol
 ├── docker/                  # Production Docker configurations
-│   └── optimized.Dockerfile    # Multi-stage production build
+│   ├── agents.Dockerfile       # Agent container configuration
+│   ├── mcp-servers.Dockerfile  # MCP server container configuration
+│   ├── mcp_server_entrypoint.py # Dynamic server startup script
+│   └── optimized.Dockerfile    # Legacy optimized build configuration
 ├── scripts/                 # Performance and monitoring tools
 │   ├── performance_test.py     # Load testing framework
 │   ├── optimize_performance.py # Performance optimization
-│   └── monitor_system.py       # Real-time monitoring
+│   ├── monitor_system.py       # Real-time monitoring
+│   ├── health_check.py         # System health validation
+│   └── integration_test.py     # End-to-end testing
 ├── docs/                    # Comprehensive documentation
 │   ├── ARCHITECTURE.md         # System architecture guide
 │   ├── ACP_SPEC.md            # ACP protocol specification
 │   └── MCP_IN_DEPTH.md        # MCP implementation guide
 ├── docker-compose.optimized.yml # Production deployment
-├── main.py                  # System entry point
+├── async_main.py            # System entry point
 └── requirements.txt         # Python dependencies
 ```
 
