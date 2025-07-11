@@ -137,6 +137,46 @@ services:
     networks:
       - synapse-network
 
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: synapse-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - synapse-network
+    depends_on:
+      - primary-tooling-server
+      - filesystem-server
+      - synapse-agents
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: synapse-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=synapse123
+      - GF_INSTALL_PLUGINS=prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana_dashboard.json:/var/lib/grafana/dashboards/synapse_dashboard.json:ro
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+    networks:
+      - synapse-network
+    depends_on:
+      - prometheus
+
 networks:
   synapse-network:
     driver: bridge
@@ -146,3 +186,5 @@ networks:
 
 volumes:
   rabbitmq_data:
+  prometheus_data:
+  grafana_data:
