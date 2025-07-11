@@ -26,6 +26,7 @@ from src.agents.async_fact_checker_agent import AsyncFactCheckerAgent
 from src.agents.async_synthesis_agent import AsyncSynthesisAgent
 from src.agents.async_file_save_agent import AsyncFileSaveAgent
 from src.agents.async_logger_agent import AsyncLoggerAgent
+from src.agents.async_base_agent import start_metrics_server
 
 # Configure logging
 logging.basicConfig(
@@ -220,6 +221,13 @@ async def main():
         
         # Wait for MCP servers
         await wait_for_mcp_servers(mcp_servers, timeout=60)
+        
+        # Start metrics server if enabled
+        metrics_port = int(os.getenv("METRICS_PORT", "9090"))
+        metrics_task = None
+        if os.getenv("METRICS_ENABLED", "false").lower() == "true":
+            logger.info(f"📊 Starting metrics server on port {metrics_port}")
+            metrics_task = asyncio.create_task(start_metrics_server(metrics_port))
         
         # Create agents
         logger.info("🤖 Creating and configuring agents...")
