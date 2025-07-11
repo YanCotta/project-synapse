@@ -1,5 +1,9 @@
 # Project Synapse 🧠
 
+> **Note:** This repository contains two primary branches:
+> - 🌳 **[`educational-simulation`](https://github.com/YanCotta/project-synapse/tree/educational-simulation):** A "pseudo-code" simulation with detailed documentation, perfect for understanding the architectural concepts of ACP, A2A, and MCP without needing to run a live application.
+> - 🚀 **[`working-app`](https://github.com/YanCotta/project-synapse/tree/working-app):** A fully functional, asynchronous version of the system using FastAPI, RabbitMQ, and asyncio. Explore this branch for a real-world implementation.
+
 **A comprehensive engineering blueprint showcasing Agent Communication Protocol (ACP), Agent-to-Agent (A2A), and Model Context Protocol (MCP) capabilities through a collaborative research swarm.**
 
 > *"Where artificial intelligence meets elegant architecture"*
