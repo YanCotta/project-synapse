@@ -12,6 +12,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import aiofiles
 
+# Prometheus monitoring
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from ..protocols.mcp_schemas import (
     SaveFileParams, SaveFileResponse, MCPSecurityError
 )
@@ -50,6 +53,19 @@ def create_filesystem_app() -> FastAPI:
         description="Secure file operations with MCP Roots security model",
         version="1.0.0"
     )
+
+    # Configure Prometheus monitoring if enabled
+    metrics_enabled = os.getenv("METRICS_ENABLED", "false").lower() == "true"
+    if metrics_enabled:
+        instrumentator = Instrumentator(
+            should_group_status_codes=False,
+            should_ignore_untemplated=True,
+            should_instrument_requests_inprogress=True,
+            should_group_untemplated=False,
+            should_round_latency_decimals=True,
+            excluded_handlers=["/health", "/metrics"]
+        )
+        instrumentator.instrument(app).expose(app)
 
     def _is_path_allowed(path_to_check: str) -> bool:
         """
