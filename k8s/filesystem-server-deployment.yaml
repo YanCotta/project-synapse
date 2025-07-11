@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: filesystem-server-deployment
+  namespace: default
+  labels:
+    app: project-synapse
+    component: filesystem-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: project-synapse
+      component: filesystem-server
+  template:
+    metadata:
+      labels:
+        app: project-synapse
+        component: filesystem-server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: filesystem-server
+        image: project-synapse:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8002
+          name: http
+        env:
+        - name: SERVER_TYPE
+          value: "filesystem"
+        - name: PORT
+          value: "8002"
+        - name: RABBITMQ_URL
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: RABBITMQ_URL
+        - name: ALLOWED_ROOTS
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: ALLOWED_ROOTS
+        - name: FILE_BUFFER_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: FILE_BUFFER_SIZE
+        - name: UVICORN_WORKERS
+          value: "1"
+        - name: UVICORN_WORKER_CONNECTIONS
+          value: "500"
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: METRICS_ENABLED
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        volumeMounts:
+        - name: output-volume
+          mountPath: /app/output
+        - name: temp-volume
+          mountPath: /app/temp
+      volumes:
+      - name: output-volume
+        emptyDir: {}
+      - name: temp-volume
+        emptyDir: {}
+      initContainers:
+      - name: wait-for-rabbitmq
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z rabbitmq-service 5672; do echo waiting for rabbitmq; sleep 2; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: filesystem-server-service
+  namespace: default
+  labels:
+    app: project-synapse
+    component: filesystem-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8002"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: project-synapse
+    component: filesystem-server
+  ports:
+  - port: 8002
+    targetPort: 8002
+    name: http
+  type: ClusterIP
