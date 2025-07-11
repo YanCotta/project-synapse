@@ -110,8 +110,7 @@ async def create_agents(message_bus: RabbitMQBus, mcp_servers: Dict[str, str]) -
         agents.append(file_save_agent)
         
         # Create logger agent (subscribes to logs topic)
-        logger_agent = AsyncLoggerAgent("logger_agent", message_bus, mcp_servers, 
-                                      subscribed_topics=["logs"])
+        logger_agent = AsyncLoggerAgent("logger_agent", message_bus, mcp_servers)
         agents.append(logger_agent)
         
         logger.info(f"Created {len(agents)} agents successfully")
