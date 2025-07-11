@@ -1,5 +1,9 @@
 # Project Synapse 🧠
 
+> **🌟 Multi-Branch Repository**: This repository showcases Project Synapse in two complementary implementations:
+> - 🎓 **[`educational-simulation`](https://github.com/YanCotta/project-synapse/tree/educational-simulation)**: A comprehensive educational simulation with detailed documentation, perfect for understanding multi-agent architecture concepts without running live services.
+> - 🚀 **[`working-app`](https://github.com/YanCotta/project-synapse/tree/working-app)**: A fully functional, production-ready implementation with Docker, Kubernetes, and monitoring. **You are currently viewing this branch.**
+
 **A production-ready multi-agent system showcasing Agent Communication Protocol (ACP) and Model Context Protocol (MCP) capabilities through a collaborative research workflow.**
 
 > *"Where artificial intelligence meets production-grade architecture"*
@@ -62,11 +66,22 @@ Project Synapse is a comprehensive multi-agent system built with modern async Py
 git clone https://github.com/YanCotta/project-synapse.git
 cd project-synapse
 
-# Deploy with optimized configuration
+# Deploy with optimized configuration (includes monitoring)
 docker-compose -f docker-compose.optimized.yml up --build
 
 # Monitor system performance
 python scripts/monitor_system.py
+```
+
+### Kubernetes Deployment
+
+```bash
+# Deploy to Kubernetes cluster
+./k8s/deploy.sh
+
+# Access monitoring
+kubectl port-forward svc/grafana 3000:3000
+kubectl port-forward svc/prometheus 9090:9090
 ```
 
 ### Development Setup
@@ -179,11 +194,18 @@ project-synapse/
 │   └── protocols/           # Communication schemas
 │       ├── acp_schema.py        # Agent Communication Protocol
 │       └── mcp_schemas.py       # Model Context Protocol
-├── docker/                  # Production Docker configurations
-│   ├── agents.Dockerfile       # Agent container configuration
-│   ├── mcp-servers.Dockerfile  # MCP server container configuration
-│   ├── mcp_server_entrypoint.py # Dynamic server startup script
-│   └── optimized.Dockerfile    # Legacy optimized build configuration
+├── k8s/                     # Kubernetes deployment manifests  
+│   ├── configmap.yaml          # Environment configuration
+│   ├── rabbitmq-deployment.yaml # RabbitMQ message broker
+│   ├── primary-server-deployment.yaml # Primary MCP server
+│   ├── filesystem-server-deployment.yaml # Filesystem MCP server
+│   ├── agents-deployment.yaml   # Agent application
+│   └── deploy.sh               # Deployment automation script
+├── monitoring/              # Observability and monitoring
+│   ├── prometheus.yml          # Prometheus configuration
+│   ├── grafana_dashboard.json  # Pre-built Grafana dashboard
+│   ├── grafana-datasources.yml # Grafana data source config
+│   └── grafana-dashboards.yml  # Dashboard provisioning config
 ├── scripts/                 # Performance and monitoring tools
 │   ├── performance_test.py     # Load testing framework
 │   ├── optimize_performance.py # Performance optimization
@@ -276,19 +298,36 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🎯 Key Features
 
-✅ **Production-Ready**: Docker containerization with resource management  
+✅ **Production-Ready**: Docker containerization with Kubernetes deployment  
 ✅ **High Performance**: Measured metrics with optimization framework  
 ✅ **Secure Architecture**: MCP Roots implementation with access controls  
-✅ **Observable Systems**: Comprehensive logging and monitoring  
+✅ **Observable Systems**: Prometheus metrics and Grafana dashboards  
 ✅ **Scalable Design**: Async architecture with connection pooling  
 ✅ **Complete Documentation**: Architecture guides and implementation details  
+✅ **Production Monitoring**: Real-time metrics and alerting capabilities
 
 ---
 
 **Deploy a production-grade multi-agent system:**
 
 ```bash
+# Docker Compose (recommended for development/testing)
 docker-compose -f docker-compose.optimized.yml up --build
+
+# Kubernetes (recommended for production)
+./k8s/deploy.sh
 ```
 
-*Experience the power of async agent coordination with real-time monitoring and production optimization.* 🧠✨
+*Experience the power of async agent coordination with comprehensive monitoring and production-grade deployment.* 🧠✨
+
+## 📚 Documentation Links
+
+### Core Documentation
+- **[🏛️ System Architecture](docs/ARCHITECTURE.md)**: Complete architectural overview with production infrastructure details
+- **[📡 ACP Protocol Specification](docs/ACP_SPEC.md)**: Agent Communication Protocol technical specification  
+- **[🔧 MCP Implementation Guide](docs/MCP_IN_DEPTH.md)**: Model Context Protocol detailed implementation guide
+- **[📋 Implementation Status](docs/IMPLEMENTATION_COMPLETE.md)**: Comprehensive development completion report
+
+### Branch Information
+- **[🎓 Educational Simulation Branch](https://github.com/YanCotta/project-synapse/tree/educational-simulation)**: Step-by-step learning implementation with detailed explanations
+- **[🚀 Production Implementation (Current)](https://github.com/YanCotta/project-synapse/tree/working-app)**: Fully functional, production-ready system with monitoring
