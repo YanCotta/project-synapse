@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # RabbitMQ message broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: synapse-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: synapse
+      RABBITMQ_DEFAULT_PASS: synapse123
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"      # AMQP port
+      - "15672:15672"    # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  # Primary Tooling MCP Server
+  primary-tooling-server:
+    build: 
+      context: .
+      dockerfile: docker/mcp-servers.Dockerfile
+      args:
+        SERVER_TYPE: primary_tooling
+    container_name: synapse-primary-tooling
+    environment:
+      - SERVER_TYPE=primary_tooling
+      - PORT=8001
+      - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
+    ports:
+      - "8001:8001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Filesystem MCP Server
+  filesystem-server:
+    build: 
+      context: .
+      dockerfile: docker/mcp-servers.Dockerfile
+      args:
+        SERVER_TYPE: filesystem
+    container_name: synapse-filesystem
+    environment:
+      - SERVER_TYPE=filesystem
+      - PORT=8002
+      - ALLOWED_ROOTS=/app/output,/app/temp
+      - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./output:/app/output
+      - ./temp:/app/temp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main Synapse Agent Application
+  synapse-agents:
+    build:
+      context: .
+      dockerfile: docker/agents.Dockerfile
+    container_name: synapse-agents
+    environment:
+      - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
+      - PRIMARY_TOOLING_URL=http://primary-tooling-server:8001
+      - FILESYSTEM_URL=http://filesystem-server:8002
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      primary-tooling-server:
+        condition: service_healthy
+      filesystem-server:
+        condition: service_healthy
+    volumes:
+      - ./output:/app/output
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    command: ["python", "async_main.py"]
+
+volumes:
+  rabbitmq_data:
+    driver: local
