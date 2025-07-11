@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: primary-server-deployment
+  namespace: default
+  labels:
+    app: project-synapse
+    component: primary-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: project-synapse
+      component: primary-server
+  template:
+    metadata:
+      labels:
+        app: project-synapse
+        component: primary-server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: primary-server
+        image: project-synapse:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: SERVER_TYPE
+          value: "primary_tooling"
+        - name: PORT
+          value: "8001"
+        - name: RABBITMQ_URL
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: RABBITMQ_URL
+        - name: UVICORN_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: UVICORN_WORKERS
+        - name: UVICORN_WORKER_CONNECTIONS
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: UVICORN_WORKER_CONNECTIONS
+        - name: ASYNC_POOL_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: ASYNC_POOL_SIZE
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: synapse-config
+              key: METRICS_ENABLED
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+      initContainers:
+      - name: wait-for-rabbitmq
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z rabbitmq-service 5672; do echo waiting for rabbitmq; sleep 2; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: primary-server-service
+  namespace: default
+  labels:
+    app: project-synapse
+    component: primary-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8001"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: project-synapse
+    component: primary-server
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: http
+  type: ClusterIP
