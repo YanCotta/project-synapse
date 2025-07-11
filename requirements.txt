@@ -1,2 +1,29 @@
+# Core dependencies from educational simulation
 pydantic>=2.0.0
 typing-extensions>=4.0.0
+
+# Async web framework and server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Message broker client
+pika==1.3.2
+
+# Async HTTP client
+aiohttp==3.9.1
+
+# Async file operations
+aiofiles==23.2.0
+
+# Server-Sent Events for streaming
+sse-starlette==1.6.5
+
+# Development and testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Docker support
+docker==6.1.3
+
+# Environment management
+python-dotenv==1.0.0
