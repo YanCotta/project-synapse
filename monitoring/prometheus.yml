@@ -1,0 +1,47 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # RabbitMQ Management Plugin Metrics
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Primary Tooling Server
+  - job_name: 'primary-tooling-server'
+    static_configs:
+      - targets: ['primary-tooling-server:8001']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Filesystem Server
+  - job_name: 'filesystem-server'
+    static_configs:
+      - targets: ['filesystem-server:8002']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Synapse Agents
+  - job_name: 'synapse-agents'
+    static_configs:
+      - targets: ['synapse-agents:9090']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Node Exporter (if available)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
