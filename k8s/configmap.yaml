@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synapse-config
+  namespace: default
+  labels:
+    app: project-synapse
+    component: config
+data:
+  # RabbitMQ Configuration
+  RABBITMQ_URL: "amqp://synapse:synapse123@rabbitmq-service:5672/"
+  RABBITMQ_DEFAULT_USER: "synapse"
+  RABBITMQ_DEFAULT_PASS: "synapse123"
+  RABBITMQ_DEFAULT_VHOST: "/"
+  
+  # MCP Server URLs
+  PRIMARY_TOOLING_URL: "http://primary-server-service:8001"
+  FILESYSTEM_URL: "http://filesystem-server-service:8002"
+  
+  # Performance Optimization Settings
+  UVICORN_WORKERS: "2"
+  UVICORN_WORKER_CONNECTIONS: "1000"
+  ASYNC_POOL_SIZE: "20"
+  AGENT_POOL_SIZE: "10"
+  MESSAGE_BATCH_SIZE: "5"
+  ASYNC_TIMEOUT: "30"
+  
+  # File System Configuration
+  ALLOWED_ROOTS: "/app/output,/app/temp"
+  FILE_BUFFER_SIZE: "65536"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  
+  # Logging Configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
