@@ -14,7 +14,10 @@ from src.mcp_servers.fastapi_filesystem_server import create_filesystem_app
 def main():
     """Start the appropriate MCP server based on SERVER_TYPE environment variable."""
     server_type = os.getenv("SERVER_TYPE")
-    port = int(os.getenv("PORT", 8000))
+    
+    # Get the port from SERVER_PORT first, fallback to PORT, then default based on server type
+    default_port = 8001 if server_type == "primary_tooling" else 8002
+    port = int(os.getenv("SERVER_PORT", os.getenv("PORT", default_port)))
     
     if server_type == "primary_tooling":
         app = create_primary_app()
