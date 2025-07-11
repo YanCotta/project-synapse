@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: synapse-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: synapse
+      RABBITMQ_DEFAULT_PASS: synapse123
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - synapse-network
+
+  primary-tooling-server:
+    build:
+      context: .
+      dockerfile: docker/mcp-servers.Dockerfile
+    container_name: synapse-primary-tooling
+    ports:
+      - "8001:8001"
+    environment:
+      - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
+      - SERVER_PORT=8001
+      # Performance optimizations
+      - UVICORN_WORKERS=2
+      - UVICORN_WORKER_CONNECTIONS=1000
+      - ASYNC_POOL_SIZE=20
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - synapse-network
+
+  filesystem-server:
+    build:
+      context: .
+      dockerfile: docker/mcp-servers.Dockerfile
+    container_name: synapse-filesystem
+    ports:
+      - "8002:8002"
+    environment:
+      - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
+      - SERVER_PORT=8002
+      - ALLOWED_ROOTS=/app/output,/app/temp
+      # Performance optimizations
+      - UVICORN_WORKERS=1
+      - UVICORN_WORKER_CONNECTIONS=500
+      - FILE_BUFFER_SIZE=65536
+    volumes:
+      - ./output:/app/output
+      - ./temp:/app/temp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - synapse-network
+
+  synapse-agents:
+    build:
+      context: .
+      dockerfile: docker/agents.Dockerfile
+    container_name: synapse-agents
+    environment:
+      - RABBITMQ_URL=amqp://synapse:synapse123@rabbitmq:5672/
+      - PRIMARY_TOOLING_URL=http://primary-tooling-server:8001
+      - FILESYSTEM_URL=http://filesystem-server:8002
+      # Performance optimizations
+      - AGENT_POOL_SIZE=10
+      - MESSAGE_BATCH_SIZE=5
+      - ASYNC_TIMEOUT=30
+    volumes:
+      - ./output:/app/output
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    depends_on:
+      primary-tooling-server:
+        condition: service_healthy
+      filesystem-server:
+        condition: service_healthy
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    networks:
+      - synapse-network
+
+networks:
+  synapse-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  rabbitmq_data:
